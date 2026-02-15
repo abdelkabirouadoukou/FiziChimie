@@ -1,94 +1,39 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
+import { BookOpen, Video, FileText, Sparkles, ArrowRight, GraduationCap, Beaker, Atom } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
-interface Link {
-  title: string
-  url: string
-}
-
-interface Lesson {
-  id: string
-  title: string
-  description: string | null
-  subject: string
-  grade: string
-  pdfUrl: string | null
-  videoUrl: string | null
-  links: Link[]
-}
-
-function getYouTubeEmbedUrl(url: string): string | null {
-  try {
-    const urlObj = new URL(url)
-    let videoId = null
-    
-    if (urlObj.hostname.includes('youtube.com')) {
-      videoId = urlObj.searchParams.get('v')
-    } else if (urlObj.hostname.includes('youtu.be')) {
-      videoId = urlObj.pathname.slice(1)
-    }
-    
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null
-  } catch {
-    return null
-  }
-}
 
 export default function Home() {
-  const [lessons, setLessons] = useState<Lesson[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedSubject, setSelectedSubject] = useState<string>('')
-  const [selectedGrade, setSelectedGrade] = useState<string>('')
-  const [expandedLesson, setExpandedLesson] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchLessons()
-  }, [selectedSubject, selectedGrade])
-
-  const fetchLessons = async () => {
-    try {
-      const params = new URLSearchParams({ published: 'true' })
-      if (selectedSubject) params.append('subject', selectedSubject)
-      if (selectedGrade) params.append('grade', selectedGrade)
-      
-      const response = await fetch(`/api/lessons?${params}`)
-      const data = await response.json()
-      setLessons(data)
-    } catch (error) {
-      console.error('Error fetching lessons:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const subjects = Array.from(new Set(lessons.map(l => l.subject)))
-  const grades = Array.from(new Set(lessons.map(l => l.grade)))
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-blue-600">Fizi-Chimie</h1>
-              <SignedIn>
-                <Link href="/admin" className="text-blue-600 hover:text-blue-800 text-sm">
-                  Admin Dashboard
-                </Link>
-              </SignedIn>
+            <div className="flex items-center space-x-2">
+              <Atom className="h-8 w-8 text-blue-600" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Fizi-Chimie
+              </h1>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-4">
+              <Link href="/lessons">
+                <Button variant="ghost">Browse Lessons</Button>
+              </Link>
               <SignedOut>
                 <SignInButton mode="modal">
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                    Sign In
-                  </button>
+                  <Button>Sign In</Button>
                 </SignInButton>
               </SignedOut>
               <SignedIn>
+                <Link href="/admin">
+                  <Button variant="outline">Dashboard</Button>
+                </Link>
                 <UserButton />
               </SignedIn>
             </div>
@@ -96,174 +41,257 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to Physics & Chemistry Learning Platform
-          </h2>
-          <p className="text-xl text-gray-600">
-            Explore lessons, watch videos, and download resources
-          </p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h3 className="text-lg font-semibold mb-4">Filter Lessons</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject
-              </label>
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Subjects</option>
-                {subjects.map((subject) => (
-                  <option key={subject} value={subject}>
-                    {subject}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Grade
-              </label>
-              <select
-                value={selectedGrade}
-                onChange={(e) => setSelectedGrade(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Grades</option>
-                {grades.map((grade) => (
-                  <option key={grade} value={grade}>
-                    {grade}
-                  </option>
-                ))}
-              </select>
+      {/* Hero Section */}
+      <section className="relative py-20 lg:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-8">
+            <Badge className="mx-auto" variant="secondary">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Master Physics & Chemistry
+            </Badge>
+            <h2 className="text-5xl md:text-7xl font-bold tracking-tight">
+              Learn Science
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                The Smart Way
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Access free video lessons, comprehensive PDFs, and interactive resources designed for students to excel in Physics and Chemistry.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link href="/lessons">
+                <Button size="lg" className="text-lg px-8">
+                  Start Learning
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button size="lg" variant="outline" className="text-lg px-8">
+                    Sign Up Free
+                  </Button>
+                </SignInButton>
+              </SignedOut>
             </div>
           </div>
         </div>
+      </section>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Loading lessons...</p>
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl md:text-4xl font-bold mb-4">
+              Everything You Need to Succeed
+            </h3>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Comprehensive learning resources tailored for students at every level
+            </p>
           </div>
-        ) : lessons.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <p className="text-gray-600">No lessons available yet. Check back soon!</p>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {lessons.map((lesson) => (
-              <div key={lesson.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                        {lesson.title}
-                      </h3>
-                      <div className="flex gap-3 mb-3">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-                          {lesson.subject}
-                        </span>
-                        <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                          {lesson.grade}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setExpandedLesson(expandedLesson === lesson.id ? null : lesson.id)}
-                      className="text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      {expandedLesson === lesson.id ? 'Show Less' : 'Show More'}
-                    </button>
-                  </div>
-
-                  {lesson.description && (
-                    <p className="text-gray-700 mb-4">{lesson.description}</p>
-                  )}
-
-                  {expandedLesson === lesson.id && (
-                    <div className="space-y-6 mt-6">
-                      {lesson.videoUrl && (
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-900 mb-3">📹 Video Lesson</h4>
-                          {(() => {
-                            const embedUrl = getYouTubeEmbedUrl(lesson.videoUrl)
-                            return embedUrl ? (
-                              <div className="aspect-video">
-                                <iframe
-                                  src={embedUrl}
-                                  className="w-full h-full rounded-lg"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                />
-                              </div>
-                            ) : (
-                              <a
-                                href={lesson.videoUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                Watch Video
-                              </a>
-                            )
-                          })()}
-                        </div>
-                      )}
-
-                      {lesson.pdfUrl && (
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-900 mb-3">📄 PDF Resource</h4>
-                          <a
-                            href={lesson.pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                          >
-                            Download PDF
-                          </a>
-                        </div>
-                      )}
-
-                      {lesson.links && lesson.links.length > 0 && (
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-900 mb-3">🔗 Additional Resources</h4>
-                          <div className="space-y-2">
-                            {lesson.links.map((link, index) => (
-                              <a
-                                key={index}
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                              >
-                                <span className="text-blue-600 hover:text-blue-800 font-medium">
-                                  {link.title} →
-                                </span>
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="border-2 hover:border-blue-600 transition-colors">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+                  <Video className="h-6 w-6 text-blue-600" />
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
+                <CardTitle>Video Lessons</CardTitle>
+                <CardDescription>
+                  Watch engaging video tutorials that break down complex concepts into easy-to-understand lessons
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-      <footer className="mt-16 bg-white border-t">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-gray-600">
-          <p>© 2026 Fizi-Chimie - Educational Platform</p>
+            <Card className="border-2 hover:border-blue-600 transition-colors">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4">
+                  <FileText className="h-6 w-6 text-indigo-600" />
+                </div>
+                <CardTitle>PDF Resources</CardTitle>
+                <CardDescription>
+                  Download comprehensive study materials, notes, and practice problems to learn offline
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-2 hover:border-blue-600 transition-colors">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4">
+                  <BookOpen className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle>Curated Links</CardTitle>
+                <CardDescription>
+                  Access handpicked external resources and references to deepen your understanding
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Subjects Section */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 hover:shadow-2xl transition-shadow">
+              <CardHeader className="space-y-4">
+                <Beaker className="h-16 w-16" />
+                <CardTitle className="text-3xl text-white">Physics</CardTitle>
+                <CardDescription className="text-blue-100 text-base">
+                  Explore mechanics, thermodynamics, electromagnetism, optics, and modern physics with comprehensive lessons and experiments
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/lessons?subject=Physics">
+                  <Button variant="secondary" className="w-full">
+                    Explore Physics
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 hover:shadow-2xl transition-shadow">
+              <CardHeader className="space-y-4">
+                <Atom className="h-16 w-16" />
+                <CardTitle className="text-3xl text-white">Chemistry</CardTitle>
+                <CardDescription className="text-purple-100 text-base">
+                  Master organic, inorganic, physical chemistry, and chemical reactions through detailed lessons and practical examples
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/lessons?subject=Chemistry">
+                  <Button variant="secondary" className="w-full">
+                    Explore Chemistry
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl md:text-4xl font-bold mb-4">
+              Simple Steps to Success
+            </h3>
+            <p className="text-lg text-gray-600">
+              Start learning in minutes
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-12">
+            <div className="text-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600 mx-auto">
+                1
+              </div>
+              <h4 className="text-xl font-semibold">Browse Lessons</h4>
+              <p className="text-gray-600">
+                Choose from our collection of Physics and Chemistry lessons organized by grade and topic
+              </p>
+            </div>
+
+            <div className="text-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 mx-auto">
+                2
+              </div>
+              <h4 className="text-xl font-semibold">Watch & Learn</h4>
+              <p className="text-gray-600">
+                Watch video tutorials, download PDFs, and explore additional resources at your own pace
+              </p>
+            </div>
+
+            <div className="text-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center text-2xl font-bold text-purple-600 mx-auto">
+                3
+              </div>
+              <h4 className="text-xl font-semibold">Master Topics</h4>
+              <p className="text-gray-600">
+                Practice with problems, review materials, and become confident in your understanding
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+          <GraduationCap className="h-20 w-20 mx-auto" />
+          <h3 className="text-4xl md:text-5xl font-bold">
+            Ready to Excel in Science?
+          </h3>
+          <p className="text-xl text-blue-100">
+            Join thousands of students mastering Physics and Chemistry with our free comprehensive resources
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link href="/lessons">
+              <Button size="lg" variant="secondary" className="text-lg px-8">
+                Browse All Lessons
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button size="lg" variant="outline" className="text-lg px-8 bg-white/10 hover:bg-white/20 text-white border-white/30">
+                  Get Started Free
+                </Button>
+              </SignInButton>
+            </SignedOut>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-900 text-slate-300 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <Atom className="h-6 w-6 text-blue-600" />
+                <span className="text-xl font-bold text-white">Fizi-Chimie</span>
+              </div>
+              <p className="text-sm">
+                Your comprehensive platform for mastering Physics and Chemistry through engaging lessons and resources.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/lessons" className="hover:text-white transition-colors">Browse Lessons</Link></li>
+                <li><Link href="/lessons?subject=Physics" className="hover:text-white transition-colors">Physics</Link></li>
+                <li><Link href="/lessons?subject=Chemistry" className="hover:text-white transition-colors">Chemistry</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">For Teachers</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <SignedIn>
+                    <Link href="/admin" className="hover:text-white transition-colors">Admin Dashboard</Link>
+                  </SignedIn>
+                  <SignedOut>
+                    <SignInButton mode="modal">
+                      <button className="hover:text-white transition-colors">Sign In to Teach</button>
+                    </SignInButton>
+                  </SignedOut>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-slate-800 pt-8 text-center text-sm">
+            <p>© 2026 Fizi-Chimie. All rights reserved. Built with ❤️ for students.</p>
+          </div>
         </div>
       </footer>
     </div>
   )
 }
+
 
