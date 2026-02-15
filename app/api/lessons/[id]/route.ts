@@ -49,7 +49,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, subject, grade, pdfUrl, videoUrl, links, published } = body
+    const { title, description, level, year, subject, chapter, lessonType, order, pdfUrl, videoUrl, links, published } = body
 
     // Delete existing links and recreate them
     await prisma.link.deleteMany({
@@ -61,8 +61,12 @@ export async function PUT(
       data: {
         title,
         description,
+        level,
+        year,
         subject,
-        grade,
+        chapter: chapter || null,
+        lessonType: lessonType || 'Cours',
+        order: order || 0,
         pdfUrl,
         videoUrl,
         published,

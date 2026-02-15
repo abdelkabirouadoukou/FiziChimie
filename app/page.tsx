@@ -18,7 +18,7 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <Atom className="h-8 w-8 text-blue-600" />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Fizi-Chimie
+                FiziChimie
               </h1>
             </div>
             <div className="flex items-center gap-4">

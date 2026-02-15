@@ -1,4 +1,3 @@
-// This is your Prisma schema file
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,8 +11,16 @@ model Lesson {
   id          String   @id @default(cuid())
   title       String
   description String?  @db.Text
-  subject     String   // e.g., "Physics", "Chemistry"
-  grade       String   // e.g., "Grade 10", "Grade 11"
+  
+  // Educational Organization
+  level       String   // e.g., "Collège", "Lycée", "Tronc Commun"
+  year        String   // e.g., "1ère Année", "2ème Année", "1ère Bac", "2ème Bac"
+  subject     String   // e.g., "Physique", "Chimie"
+  chapter     String?  // e.g., "Mécanique", "Électricité", "Réactions Chimiques"
+  lessonType  String   @default("Cours") // "Cours", "Exercice", "Examen", "Vidéo"
+  
+  // Sorting
+  order       Int      @default(0) // For custom ordering within chapter
   
   // Content types
   pdfUrl      String?  // URL to PDF file
@@ -26,9 +33,12 @@ model Lesson {
   updatedAt   DateTime @updatedAt
   published   Boolean  @default(false)
   
+  @@index([level])
+  @@index([year])
   @@index([subject])
-  @@index([grade])
+  @@index([chapter])
   @@index([published])
+  @@index([lessonType])
 }
 
 model Link {

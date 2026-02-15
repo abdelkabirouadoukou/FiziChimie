@@ -5,22 +5,29 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
+    const level = searchParams.get('level')
+    const year = searchParams.get('year')
     const subject = searchParams.get('subject')
-    const grade = searchParams.get('grade')
+    const chapter = searchParams.get('chapter')
     const published = searchParams.get('published')
 
     const lessons = await prisma.lesson.findMany({
       where: {
+        ...(level && { level }),
+        ...(year && { year }),
         ...(subject && { subject }),
-        ...(grade && { grade }),
+        ...(chapter && { chapter }),
         ...(published !== null && { published: published === 'true' }),
       },
       include: {
         links: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { year: 'asc' },
+        { subject: 'asc' },
+        { order: 'asc' },
+        { createdAt: 'desc' },
+      ],
     })
 
     return NextResponse.json(lessons)
@@ -45,14 +52,18 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { title, description, subject, grade, pdfUrl, videoUrl, links, published } = body
+    const { title, description, level, year, subject, chapter, lessonType, order, pdfUrl, videoUrl, links, published } = body
 
     const lesson = await prisma.lesson.create({
       data: {
         title,
         description,
+        level,
+        year,
         subject,
-        grade,
+        chapter: chapter || null,
+        lessonType: lessonType || 'Cours',
+        order: order || 0,
         pdfUrl,
         videoUrl,
         published: published || false,
