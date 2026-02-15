@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUser, UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
-import { Plus, Edit, Trash2, Eye, EyeOff, Home, X, Atom } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, EyeOff, Home, X, Atom, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -20,13 +20,27 @@ interface Lesson {
   id: string
   title: string
   description: string | null
+  level: string
+  year: string
   subject: string
-  grade: string
+  chapter: string | null
+  lessonType: string
+  order: number
   pdfUrl: string | null
   videoUrl: string | null
   published: boolean
   links: Link[]
 }
+
+// Educational structure constants
+const LEVELS = ['Collège', 'Lycée', 'Tronc Commun']
+const YEARS = {
+  'Collège': ['1ère Année', '2ème Année', '3ème Année'],
+  'Lycée': ['Tronc Commun', '1ère Bac Sciences', '2ème Bac Sciences'],
+  'Tronc Commun': ['Tronc Commun']
+}
+const SUBJECTS = ['Physique', 'Chimie']
+const LESSON_TYPES = ['Cours', 'Exercice', 'Examen', 'Vidéo', 'Résumé']
 
 export default function AdminPage() {
   const { user } = useUser()
@@ -34,12 +48,17 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
+  const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set())
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    subject: '',
-    grade: '',
+    level: 'Lycée',
+    year: 'Tronc Commun',
+    subject: 'Physique',
+    chapter: '',
+    lessonType: 'Cours',
+    order: 0,
     pdfUrl: '',
     videoUrl: '',
     published: false,
@@ -88,7 +107,7 @@ export default function AdminPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this lesson?')) return
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette leçon ?')) return
     
     try {
       const response = await fetch(`/api/lessons/${id}`, {
@@ -108,8 +127,12 @@ export default function AdminPage() {
     setFormData({
       title: lesson.title,
       description: lesson.description || '',
+      level: lesson.level,
+      year: lesson.year,
       subject: lesson.subject,
-      grade: lesson.grade,
+      chapter: lesson.chapter || '',
+      lessonType: lesson.lessonType,
+      order: lesson.order,
       pdfUrl: lesson.pdfUrl || '',
       videoUrl: lesson.videoUrl || '',
       published: lesson.published,
@@ -122,8 +145,12 @@ export default function AdminPage() {
     setFormData({
       title: '',
       description: '',
-      subject: '',
-      grade: '',
+      level: 'Lycée',
+      year: 'Tronc Commun',
+      subject: 'Physique',
+      chapter: '',
+      lessonType: 'Cours',
+      order: 0,
       pdfUrl: '',
       videoUrl: '',
       published: false,
@@ -150,6 +177,27 @@ export default function AdminPage() {
     })
   }
 
+  const toggleYear = (year: string) => {
+    const newExpanded = new Set(expandedYears)
+    if (newExpanded.has(year)) {
+      newExpanded.delete(year)
+    } else {
+      newExpanded.add(year)
+    }
+    setExpandedYears(newExpanded)
+  }
+
+  // Group lessons by year, subject, and chapter
+  const groupedLessons = lessons.reduce((acc, lesson) => {
+    const yearKey = `${lesson.level} - ${lesson.year}`
+    if (!acc[yearKey]) acc[yearKey] = {}
+    if (!acc[yearKey][lesson.subject]) acc[yearKey][lesson.subject] = {}
+    const chapterKey = lesson.chapter || 'Sans Chapitre'
+    if (!acc[yearKey][lesson.subject][chapterKey]) acc[yearKey][lesson.subject][chapterKey] = []
+    acc[yearKey][lesson.subject][chapterKey].push(lesson)
+    return acc
+  }, {} as Record<string, Record<string, Record<string, Lesson[]>>>)
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Navigation */}
@@ -158,19 +206,19 @@ export default function AdminPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <Atom className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold">Admin Dashboard</h1>
+              <h1 className="text-xl font-bold">Tableau de Bord Admin</h1>
             </div>
             <div className="flex items-center gap-4">
               <Link href="/">
                 <Button variant="ghost" size="sm">
                   <Home className="h-4 w-4 mr-2" />
-                  Home
+                  Accueil
                 </Button>
               </Link>
               <Link href="/lessons">
                 <Button variant="outline" size="sm">
                   <Eye className="h-4 w-4 mr-2" />
-                  View Lessons
+                  Voir les Leçons
                 </Button>
               </Link>
               <UserButton />
@@ -183,8 +231,8 @@ export default function AdminPage() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Manage Lessons</h2>
-            <p className="text-gray-600">Create and manage educational content</p>
+            <h2 className="text-3xl font-bold mb-2">Gérer les Leçons</h2>
+            <p className="text-gray-600">Créer et gérer du contenu éducatif</p>
           </div>
           <Button
             onClick={() => {
@@ -196,12 +244,12 @@ export default function AdminPage() {
             {showForm ? (
               <>
                 <X className="h-4 w-4 mr-2" />
-                Cancel
+                Annuler
               </>
             ) : (
               <>
                 <Plus className="h-4 w-4 mr-2" />
-                Add New Lesson
+                Ajouter une Leçon
               </>
             )}
           </Button>
@@ -211,21 +259,103 @@ export default function AdminPage() {
         {showForm && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>{editingLesson ? 'Edit Lesson' : 'Create New Lesson'}</CardTitle>
+              <CardTitle>{editingLesson ? 'Modifier la Leçon' : 'Créer une Nouvelle Leçon'}</CardTitle>
               <CardDescription>
-                Fill in the details below to {editingLesson ? 'update' : 'create'} a lesson
+                Remplissez les détails ci-dessous pour {editingLesson ? 'modifier' : 'créer'} une leçon
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Educational Structure */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
+                  <div className="space-y-2">
+                    <Label htmlFor="level">Niveau *</Label>
+                    <select
+                      id="level"
+                      required
+                      value={formData.level}
+                      onChange={(e) => {
+                        const newLevel = e.target.value
+                        setFormData({ 
+                          ...formData, 
+                          level: newLevel,
+                          year: YEARS[newLevel as keyof typeof YEARS][0]
+                        })
+                      }}
+                      className="flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                    >
+                      {LEVELS.map((level) => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="year">Année *</Label>
+                    <select
+                      id="year"
+                      required
+                      value={formData.year}
+                      onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                      className="flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                    >
+                      {YEARS[formData.level as keyof typeof YEARS].map((year) => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Matière *</Label>
+                    <select
+                      id="subject"
+                      required
+                      value={formData.subject}
+                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      className="flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                    >
+                      {SUBJECTS.map((subject) => (
+                        <option key={subject} value={subject}>{subject}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="chapter">Chapitre</Label>
+                    <Input
+                      id="chapter"
+                      value={formData.chapter}
+                      onChange={(e) => setFormData({ ...formData, chapter: e.target.value })}
+                      placeholder="ex: Mécanique, Électricité, Chimie Organique"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lessonType">Type de Leçon *</Label>
+                    <select
+                      id="lessonType"
+                      required
+                      value={formData.lessonType}
+                      onChange={(e) => setFormData({ ...formData, lessonType: e.target.value })}
+                      className="flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                    >
+                      {LESSON_TYPES.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title">Titre *</Label>
                   <Input
                     id="title"
                     required
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Enter lesson title"
+                    placeholder="Entrez le titre de la leçon"
                   />
                 </div>
 
@@ -236,58 +366,48 @@ export default function AdminPage() {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
-                    placeholder="Enter lesson description"
+                    placeholder="Entrez la description de la leçon"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="subject">Subject *</Label>
+                    <Label htmlFor="pdfUrl">URL du PDF</Label>
                     <Input
-                      id="subject"
-                      required
-                      value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      placeholder="e.g., Physics, Chemistry"
+                      id="pdfUrl"
+                      type="url"
+                      value={formData.pdfUrl}
+                      onChange={(e) => setFormData({ ...formData, pdfUrl: e.target.value })}
+                      placeholder="https://example.com/file.pdf"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="grade">Grade *</Label>
+                    <Label htmlFor="videoUrl">URL de la Vidéo YouTube</Label>
                     <Input
-                      id="grade"
-                      required
-                      value={formData.grade}
-                      onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                      placeholder="e.g., Grade 10, Grade 11"
+                      id="videoUrl"
+                      type="url"
+                      value={formData.videoUrl}
+                      onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                      placeholder="https://www.youtube.com/watch?v=..."
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pdfUrl">PDF URL</Label>
+                  <Label htmlFor="order">Ordre (pour le tri)</Label>
                   <Input
-                    id="pdfUrl"
-                    type="url"
-                    value={formData.pdfUrl}
-                    onChange={(e) => setFormData({ ...formData, pdfUrl: e.target.value })}
-                    placeholder="https://example.com/file.pdf"
+                    id="order"
+                    type="number"
+                    value={formData.order}
+                    onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                    placeholder="0"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="videoUrl">YouTube Video URL</Label>
-                  <Input
-                    id="videoUrl"
-                    type="url"
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                  />
+                  <p className="text-xs text-gray-600">Les leçons seront triées par ordre croissant</p>
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Additional Links</Label>
+                  <Label>Liens Additionnels</Label>
                   {formData.links.length > 0 && (
                     <div className="space-y-2">
                       {formData.links.map((link, index) => (
@@ -310,18 +430,18 @@ export default function AdminPage() {
                   <div className="flex gap-2">
                     <Input
                       type="text"
-                      placeholder="Link title"
+                      placeholder="Titre du lien"
                       value={newLink.title}
                       onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
                     />
                     <Input
                       type="url"
-                      placeholder="Link URL"
+                      placeholder="URL du lien"
                       value={newLink.url}
                       onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                     />
                     <Button type="button" variant="secondary" onClick={addLink}>
-                      Add
+                      Ajouter
                     </Button>
                   </div>
                 </div>
@@ -335,13 +455,13 @@ export default function AdminPage() {
                     className="h-4 w-4 rounded border-gray-300"
                   />
                   <Label htmlFor="published" className="font-normal cursor-pointer">
-                    Publish lesson (make visible to students)
+                    Publier la leçon (rendre visible aux étudiants)
                   </Label>
                 </div>
 
                 <div className="flex gap-2">
                   <Button type="submit">
-                    {editingLesson ? 'Update Lesson' : 'Create Lesson'}
+                    {editingLesson ? 'Modifier la Leçon' : 'Créer la Leçon'}
                   </Button>
                   <Button
                     type="button"
@@ -351,7 +471,7 @@ export default function AdminPage() {
                       setShowForm(false)
                     }}
                   >
-                    Cancel
+                    Annuler
                   </Button>
                 </div>
               </form>
@@ -359,71 +479,109 @@ export default function AdminPage() {
           </Card>
         )}
 
-        {/* Lessons List */}
+        {/* Lessons List - Organized by Year */}
         {isLoading ? (
           <div className="text-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading lessons...</p>
+            <p className="text-gray-600">Chargement des leçons...</p>
           </div>
         ) : lessons.length === 0 ? (
           <Card className="p-12 text-center">
-            <p className="text-xl text-gray-600 mb-2">No lessons yet</p>
-            <p className="text-sm text-gray-600 mb-4">Create your first lesson to get started!</p>
+            <p className="text-xl text-gray-600 mb-2">Aucune leçon pour le moment</p>
+            <p className="text-sm text-gray-600 mb-4">Créez votre première leçon pour commencer !</p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create First Lesson
+              Créer la Première Leçon
             </Button>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {lessons.map((lesson) => (
-              <Card key={lesson.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className="text-xl">{lesson.title}</CardTitle>
-                        {lesson.published ? (
-                          <Badge variant="default">
-                            <Eye className="h-3 w-3 mr-1" />
-                            Published
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            <EyeOff className="h-3 w-3 mr-1" />
-                            Draft
-                          </Badge>
-                        )}
-                      </div>
-                      {lesson.description && (
-                        <CardDescription>{lesson.description}</CardDescription>
-                      )}
-                      <div className="flex gap-2 mt-3">
-                        <Badge variant="outline">{lesson.subject}</Badge>
-                        <Badge variant="outline">{lesson.grade}</Badge>
-                      </div>
+          <div className="space-y-4">
+            {Object.keys(groupedLessons).sort().map((yearKey) => (
+              <Card key={yearKey} className="overflow-hidden">
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleYear(yearKey)}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-2xl">{yearKey}</CardTitle>
+                      <CardDescription>
+                        {Object.values(groupedLessons[yearKey]).reduce((acc, subj) => 
+                          acc + Object.values(subj).reduce((a, ch) => a + ch.length, 0), 0
+                        )} leçons
+                      </CardDescription>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(lesson)}>
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(lesson.id)}>
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4 text-sm text-gray-600">
-                    {lesson.pdfUrl && <span>📄 PDF attached</span>}
-                    {lesson.videoUrl && <span>🎥 Video attached</span>}
-                    {lesson.links && lesson.links.length > 0 && (
-                      <span>🔗 {lesson.links.length} link(s)</span>
+                    {expandedYears.has(yearKey) ? (
+                      <ChevronUp className="h-6 w-6" />
+                    ) : (
+                      <ChevronDown className="h-6 w-6" />
                     )}
                   </div>
-                </CardContent>
+                </CardHeader>
+
+                {expandedYears.has(yearKey) && (
+                  <CardContent className="space-y-6">
+                    {Object.keys(groupedLessons[yearKey]).sort().map((subject) => (
+                      <div key={subject} className="space-y-3">
+                        <h4 className="text-lg font-semibold text-blue-600 border-b pb-2">{subject}</h4>
+                        {Object.keys(groupedLessons[yearKey][subject]).sort().map((chapter) => (
+                          <div key={chapter} className="space-y-2 ml-4">
+                            <h5 className="text-md font-medium text-gray-700">{chapter}</h5>
+                            <div className="grid gap-2 ml-4">
+                              {groupedLessons[yearKey][subject][chapter]
+                                .sort((a, b) => a.order - b.order)
+                                .map((lesson) => (
+                                <Card key={lesson.id} className="hover:shadow-md transition-shadow">
+                                  <CardContent className="p-4">
+                                    <div className="flex justify-between items-start">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <h6 className="font-medium">{lesson.title}</h6>
+                                          <Badge variant={lesson.lessonType === 'Cours' ? 'default' : 'secondary'}>
+                                            {lesson.lessonType}
+                                          </Badge>
+                                          {lesson.published ? (
+                                            <Badge variant="default">
+                                              <Eye className="h-3 w-3 mr-1" />
+                                              Publié
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="secondary">
+                                              <EyeOff className="h-3 w-3 mr-1" />
+                                              Brouillon
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {lesson.description && (
+                                          <p className="text-sm text-gray-600 mb-2">{lesson.description}</p>
+                                        )}
+                                        <div className="flex gap-2 text-xs text-gray-600">
+                                          {lesson.pdfUrl && <span>📄 PDF</span>}
+                                          {lesson.videoUrl && <span>🎥 Vidéo</span>}
+                                          {lesson.links && lesson.links.length > 0 && (
+                                            <span>🔗 {lesson.links.length} lien(s)</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={() => handleEdit(lesson)}>
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="destructive" size="sm" onClick={() => handleDelete(lesson.id)}>
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </CardContent>
+                )}
               </Card>
             ))}
           </div>
