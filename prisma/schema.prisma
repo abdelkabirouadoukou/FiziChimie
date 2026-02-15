@@ -1,0 +1,43 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  subject     String   // e.g., "Physics", "Chemistry"
+  grade       String   // e.g., "Grade 10", "Grade 11"
+  
+  // Content types
+  pdfUrl      String?  // URL to PDF file
+  videoUrl    String?  // YouTube URL or direct video URL
+  links       Link[]
+  
+  // Metadata
+  createdBy   String   // Clerk user ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  published   Boolean  @default(false)
+  
+  @@index([subject])
+  @@index([grade])
+  @@index([published])
+}
+
+model Link {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  
+  @@index([lessonId])
+}
